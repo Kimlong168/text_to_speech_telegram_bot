@@ -13,7 +13,7 @@ const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(TOKEN, { polling: true });
 
 const app = express();
-const PORT = 3000;
+const port = process.env.PORT || 3000;
 
 // Serve the audio files via HTTP
 app.use(express.static("audio"));
@@ -86,6 +86,6 @@ bot.on("message", async (msg) => {
 });
 
 // Start the Express server
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
 });
