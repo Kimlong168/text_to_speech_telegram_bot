@@ -62,7 +62,7 @@ bot.on("message", async (msg) => {
   if (msg?.text == "/start") {
     bot.sendMessage(
       chatId,
-      "Please send me some text (Khmer or English) less than 200 characters, and I will convert it to speech."
+      "Please send me some text (Khmer or English), and I will convert it to speech."
     );
 
     return;
@@ -92,7 +92,7 @@ bot.on("message", async (msg) => {
   } else {
     bot.sendMessage(
       chatId,
-      "Please send me some text (Khmer or English) less than 200 characters, and I will convert it to speech."
+      "Please send me some text (Khmer or English), and I will convert it to speech."
     );
   }
 });
