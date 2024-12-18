@@ -1,6 +1,6 @@
 import express from "express";
 import TelegramBot from "node-telegram-bot-api";
-import { writeFile } from "fs/promises";
+import { writeFile, readdir, unlink } from "fs/promises"; // Use fs.promises for async file operations
 import fetch from "node-fetch"; // Required to download audio files
 import * as franc from "franc-min";
 import googleTTS from "google-tts-api";
@@ -19,7 +19,7 @@ const port = process.env.PORT || 3000;
 app.use(express.static("audio"));
 
 // handle long text
-const generateVoice = async (text, filePath) => {
+const generateVoice = async (text) => {
   // Detect the language of the input text
   const detectedLang = franc.franc(text); // Returns the ISO 639-3 language code
   let langCode = "en"; // Default language is English
@@ -38,50 +38,22 @@ const generateVoice = async (text, filePath) => {
     splitPunct: ",.?",
   });
 
-  console.log("Generated audio URLs:", results[0].url);
+  console.log("Generated audio URLs:", results);
   try {
-    // Download the audio file from the selected URL
-    const response = await fetch(results[0].url);
-    const buffer = await response.arrayBuffer();
+    // Download the audio files from each URL and save them
+    for (let i = 0; i < results.length; i++) {
+      const response = await fetch(results[i].url);
+      const buffer = await response.arrayBuffer();
 
-    // Write the audio data to a file
-    await writeFile(filePath, Buffer.from(buffer));
+      const audioFilePath = `audio/Preview_${i + 1}.mp3`; // Different file for each URL
+      await writeFile(audioFilePath, Buffer.from(buffer));
+      console.log(`Audio file saved: ${audioFilePath}`);
+    }
   } catch (error) {
     console.error("Error generating voice:", error);
     throw error;
   }
 };
-
-// handle short text
-// const generateVoice = async (text, filePath) => {
-//   // Detect the language of the input text
-//   const detectedLang = franc.franc(text); // Returns the ISO 639-3 language code
-//   let langCode = "en"; // Default language is English
-
-//   console.log("Detected language code:", detectedLang);
-//   // If the detected language is Khmer (ISO 639-3 code for Khmer is 'und')
-//   if (detectedLang === "und") {
-//     langCode = "km"; // Set language code to Khmer
-//   }
-
-//   // Generate the Google TTS URL
-//   const url = googleTTS.getAudioUrl(text, {
-//     lang: langCode, // Use dynamic language code
-//     slow: false,
-//   });
-
-//   try {
-//     // Download the audio file from the generated URL
-//     const response = await fetch(url);
-//     const buffer = await response.arrayBuffer();
-
-//     // Write the audio data to a file
-//     await writeFile(filePath, Buffer.from(buffer));
-//   } catch (error) {
-//     console.error("Error generating voice:", error);
-//     throw error;
-//   }
-// };
 
 // Bot logic to handle user messages
 bot.on("message", async (msg) => {
@@ -90,7 +62,7 @@ bot.on("message", async (msg) => {
   if (msg?.text == "/start") {
     bot.sendMessage(
       chatId,
-      "Please send me some text(Khmer or English), and I will convert it to speech."
+      "Please send me some text (Khmer or English) less than 200 characters, and I will convert it to speech."
     );
 
     return;
@@ -99,15 +71,20 @@ bot.on("message", async (msg) => {
   if (msg?.text) {
     const text = msg.text;
 
-    const audioFileName = `Preview.mp3`;
-    const audioFilePath = `audio/${audioFileName}`;
-
     try {
       // Generate text-to-speech audio
-      await generateVoice(text, audioFilePath);
+      await generateVoice(text);
 
-      // Send the audio back to the user
-      await bot.sendVoice(chatId, audioFilePath);
+      // Fetch all the generated audio files
+      const files = await fetchAudioFiles();
+
+      // Send all the generated audio files back to the user
+      for (const file of files) {
+        await bot.sendVoice(chatId, file);
+        // After sending, delete the file
+        await unlink(file);
+        console.log(`Deleted audio file: ${file}`);
+      }
     } catch (error) {
       console.error("Error generating voice:", error);
       bot.sendMessage(chatId, "Sorry, I couldn't process your request.");
@@ -115,10 +92,21 @@ bot.on("message", async (msg) => {
   } else {
     bot.sendMessage(
       chatId,
-      "Please send me some text(Khmer or English), and I will convert it to speech."
+      "Please send me some text (Khmer or English) less than 200 characters, and I will convert it to speech."
     );
   }
 });
+
+// Function to fetch all the generated audio files
+const fetchAudioFiles = async () => {
+  // Fetch all the files generated in the "audio" directory
+  const audioFiles = await readdir("audio");
+
+  // Filter the files to only include those starting with "Preview" and ending with ".mp3"
+  return audioFiles
+    .filter((file) => file.startsWith("Preview") && file.endsWith(".mp3"))
+    .map((file) => `audio/${file}`);
+};
 
 // Start the Express server
 app.listen(port, () => {
