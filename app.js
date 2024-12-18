@@ -36,9 +36,18 @@ const generateVoice = async (text, filePath) => {
 
 // Bot logic to handle user messages
 bot.on("message", async (msg) => {
-  const chatId = msg.chat.id;
+  const chatId = msg?.chat.id;
 
-  if (msg.text) {
+  if (msg?.text == "/start") {
+    bot.sendMessage(
+      chatId,
+      "Please send me some text, and I will convert it to speech."
+    );
+
+    return;
+  }
+
+  if (msg?.text) {
     const text = msg.text;
     // const audioFileName = `audio_${Date.now()}.mp3`;
     // const audioFilePath = `audio/${audioFileName}`;
@@ -55,6 +64,11 @@ bot.on("message", async (msg) => {
       console.error("Error generating voice:", error);
       bot.sendMessage(chatId, "Sorry, I couldn't process your request.");
     }
+  } else {
+    bot.sendMessage(
+      chatId,
+      "Please send me some text, and I will convert it to speech."
+    );
   }
 });
 
