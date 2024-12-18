@@ -51,7 +51,7 @@ bot.on("message", async (msg) => {
     const text = msg.text;
     // const audioFileName = `audio_${Date.now()}.mp3`;
     // const audioFilePath = `audio/${audioFileName}`;
-    const audioFileName = `Preview.ogg`;
+    const audioFileName = `Preview.mp3`;
     const audioFilePath = `audio/${audioFileName}`;
 
     try {
