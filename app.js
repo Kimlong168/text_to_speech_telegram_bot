@@ -18,6 +18,7 @@ const port = process.env.PORT || 3000;
 // Serve the audio files via HTTP
 app.use(express.static("audio"));
 
+// handle long text
 const generateVoice = async (text, filePath) => {
   // Detect the language of the input text
   const detectedLang = franc.franc(text); // Returns the ISO 639-3 language code
@@ -29,15 +30,18 @@ const generateVoice = async (text, filePath) => {
     langCode = "km"; // Set language code to Khmer
   }
 
-  // Generate the Google TTS URL
-  const url = googleTTS.getAudioUrl(text, {
-    lang: langCode, // Use dynamic language code
+  // Generate the Google TTS URLs using getAllAudioUrls
+  const results = googleTTS.getAllAudioUrls(text, {
+    lang: langCode,
     slow: false,
+    host: "https://translate.google.com",
+    splitPunct: ",.?",
   });
 
+  console.log("Generated audio URLs:", results[0].url);
   try {
-    // Download the audio file from the generated URL
-    const response = await fetch(url);
+    // Download the audio file from the selected URL
+    const response = await fetch(results[0].url);
     const buffer = await response.arrayBuffer();
 
     // Write the audio data to a file
@@ -47,6 +51,37 @@ const generateVoice = async (text, filePath) => {
     throw error;
   }
 };
+
+// handle short text
+// const generateVoice = async (text, filePath) => {
+//   // Detect the language of the input text
+//   const detectedLang = franc.franc(text); // Returns the ISO 639-3 language code
+//   let langCode = "en"; // Default language is English
+
+//   console.log("Detected language code:", detectedLang);
+//   // If the detected language is Khmer (ISO 639-3 code for Khmer is 'und')
+//   if (detectedLang === "und") {
+//     langCode = "km"; // Set language code to Khmer
+//   }
+
+//   // Generate the Google TTS URL
+//   const url = googleTTS.getAudioUrl(text, {
+//     lang: langCode, // Use dynamic language code
+//     slow: false,
+//   });
+
+//   try {
+//     // Download the audio file from the generated URL
+//     const response = await fetch(url);
+//     const buffer = await response.arrayBuffer();
+
+//     // Write the audio data to a file
+//     await writeFile(filePath, Buffer.from(buffer));
+//   } catch (error) {
+//     console.error("Error generating voice:", error);
+//     throw error;
+//   }
+// };
 
 // Bot logic to handle user messages
 bot.on("message", async (msg) => {
